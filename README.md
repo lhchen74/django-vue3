@@ -2,11 +2,11 @@
 
 ### django
 
-0. pip install django
-1. django-admin startproject backends
-2. cd backends
-3. python manage.py startapp lyb
-4. backends/settings.py INSTALLED_APPS add lyb
+1. pip install django
+2. django-admin startproject backends
+3. cd backends
+4. python manage.py startapp lyb
+5. backends/settings.py INSTALLED_APPS add lyb
 
 ```python
 INSTALLED_APPS = [
@@ -16,7 +16,7 @@ INSTALLED_APPS = [
 ]
 ```
 
-5. python manage.py runserver
+6. python manage.py runserver
 
 #### models
 
@@ -83,7 +83,7 @@ class LybViewSet(viewsets.ModelViewSet):
     serializer_class = LybSerializer
 ```
 
-### router
+#### router
 
 backends/urls.py
 
@@ -102,11 +102,11 @@ urlpatterns = [
 ]
 ```
 
-#### testing
+#### djangorestframework interface
 
 python manage.py runserver
 
-http://127.0.0.1:8000/api/lyb
+http://localhost:8000/api/lyb
 
 ![](backends.png)
 
@@ -145,7 +145,172 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 1. npm init vite-app frontends
 2. cd frontends
-3. npm install
+3. npm install & npm install axios
 4. npm run dev
-5. index.html link milligram CDN
+5. index.html add milligram CDN link
+
+[Milligram - A minimalist CSS framework](https://milligram.io/)
+
+```html
+<link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic"
+/>
+<link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css"
+/>
+<link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css"
+/>
+```
+
 6. components/Lyb.vue
+
+```html
+<template>
+    <div class="row">
+        <div class="column">
+            <table>
+                <thead>
+                    <tr>
+                        <th>标题</th>
+                        <th>作者</th>
+                        <th>内容</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in ly_list" :key="item.url">
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.author }}</td>
+                        <td>{{ item.content }}</td>
+                        <td>
+                            <button
+                                @click="editLyb(item)"
+                                style="margin: 0.5rem"
+                            >
+                                编辑
+                            </button>
+                            <button @click="deleteLyb(item)">删除</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="column">
+            <input type="hidden" v-model="lyb.url" />
+            <div>
+                <label for="title">标题</label
+                ><input type="text" id="title" v-model="lyb.title" />
+            </div>
+            <div>
+                <label for="author">作者</label
+                ><input type="text" id="author" v-model="lyb.author" />
+            </div>
+            <div>
+                <label for="content">内容</label
+                ><textarea id="content" v-model="lyb.content"></textarea>
+            </div>
+            <button @click="saveLyb">确定</button>
+        </div>
+    </div>
+</template>
+
+<script>
+    import axios from "axios";
+    import { reactive, onMounted, toRefs } from "vue";
+
+    export default {
+        name: "Lyb",
+        setup() {
+            let base_url = "http://localhost:8000/api/lyb/";
+
+            const lyb_blank = { url: "", title: "", author: "", content: "" };
+
+            const state = reactive({
+                ly_list: [],
+                lyb: Object.assign({}, lyb_blank),
+            });
+
+            const getLyb = () => {
+                axios
+                    .get(base_url)
+                    .then((res) => {
+                        state.ly_list = res.data;
+                        state.lyb = Object.assign({}, lyb_blank);
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    });
+            };
+
+            const editLyb = (item) => {
+                state.lyb.url = item.url;
+                state.lyb.title = item.title;
+                state.lyb.author = item.author;
+                state.lyb.content = item.content;
+            };
+
+            const deleteLyb = (item) => {
+                axios
+                    .delete(item.url)
+                    .then(() => {
+                        getLyb();
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    });
+            };
+
+            const saveLyb = () => {
+                let newLyb = {
+                    title: state.lyb.title,
+                    author: state.lyb.author,
+                    content: state.lyb.content,
+                };
+
+                if (!state.lyb.url) {
+                    // add
+                    axios
+                        .post(base_url, newLyb)
+                        .then(() => {
+                            getLyb();
+                        })
+                        .catch((err) => {
+                            console.log(err);
+                        });
+                } else {
+                    // update
+                    axios
+                        .put(state.lyb.url, newLyb)
+                        .then(() => {
+                            getLyb();
+                        })
+                        .catch((err) => {
+                            console.log(err);
+                        });
+                }
+            };
+
+            onMounted(() => {
+                getLyb();
+            });
+
+            return {
+                ...toRefs(state),
+                editLyb,
+                saveLyb,
+                deleteLyb,
+            };
+        },
+    };
+</script>
+```
+
+7. npm run dev
+
+http://localhost:3000/
+
+![](frontends.png)
